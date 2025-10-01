@@ -1,0 +1,821 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  STORE_MANAGER
+  PRODUCTION_TEAM
+  DELIVERY_TEAM
+  CASHIER
+  MANAGER
+}
+
+enum CustomerType {
+  INDIVIDUAL
+  B2B
+  COMMUNITY
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
+
+enum ProductCategory {
+  BREAD
+  PASTRY
+  CAKE
+  COOKIE
+  BEVERAGE
+  SANDWICH
+  SALAD
+  OTHER
+}
+
+enum TaxType {
+  GST
+  VAT
+  NONE
+}
+
+enum UnitType {
+  PIECE
+  KG
+  GRAM
+  LITER
+  ML
+  PACK
+  BOX
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PRODUCTION
+  READY_FOR_DELIVERY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum DeliveryStatus {
+  SCHEDULED
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  RETURNED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  CONFIRMED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+enum ProductionStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole @default(STORE_MANAGER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  posOrders   POSOrder[]
+  posSessions POSSession[]
+  inventoryMovements InventoryMovement[]
+
+  @@map("users")
+}
+
+model Customer {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  firstName   String
+  lastName    String
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  customerType CustomerType @default(INDIVIDUAL)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  orders      Order[]
+  deliveries  Delivery[]
+  posOrders   POSOrder[]
+  logins      CustomerLogin[]
+  locations   CustomerLocation[]
+  websiteOrders WebsiteOrder[]
+
+  @@map("customers")
+}
+
+// ===== PRODUCT MANAGEMENT =====
+model Product {
+  id            String          @id @default(cuid())
+  sku           String          @unique
+  name          String
+  description   String?
+  barcode       String?         @unique
+  category      ProductCategory
+  status        ProductStatus   @default(ACTIVE)
+  
+  // Pricing & Tax
+  basePrice     Decimal         @db.Decimal(10, 2)
+  sellingPrice  Decimal         @db.Decimal(10, 2)
+  costPrice     Decimal         @db.Decimal(10, 2)
+  taxRate       Decimal         @db.Decimal(5, 2) @default(0)
+  taxType       TaxType         @default(GST)
+  
+  // Inventory
+  unitType      UnitType        @default(PIECE)
+  minStockLevel Int             @default(0)
+  maxStockLevel Int?
+  
+  // Physical Properties
+  weight        Decimal?        @db.Decimal(8, 3)
+  dimensions    String?         // JSON: {length, width, height}
+  shelfLife     Int?            // in days
+  
+  // Media
+  imageUrl      String?
+  
+  // Metadata
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  
+  // Relations
+  variants      ProductVariant[]
+  inventory     Inventory[]
+  orderItems    OrderItem[]
+  productionItems ProductionItem[]
+  recipeItems   RecipeItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  posOrderItems POSOrderItem[]
+  websiteOrderItems WebsiteOrderItem[]
+  
+  @@map("products")
+}
+
+model ProductVariant {
+  id          String   @id @default(cuid())
+  productId   String
+  name        String   // e.g., "Size: Large", "Flavor: Chocolate"
+  value       String   // e.g., "Large", "Chocolate"
+  sku         String?  @unique
+  priceAdjustment Decimal @db.Decimal(10, 2) @default(0) // Additional cost
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@map("product_variants")
+}
+
+// ===== INVENTORY MANAGEMENT =====
+model Inventory {
+  id            String   @id @default(cuid())
+  productId     String
+  warehouseId   String?
+  quantity     Int
+  reservedQty   Int      @default(0)
+  location     String?  // Shelf, Rack, etc.
+  batchNumber  String?
+  expiryDate   DateTime?
+  lastUpdated  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse    Warehouse? @relation(fields: [warehouseId], references: [id])
+  movements    InventoryMovement[]
+  
+  @@map("inventory")
+}
+
+model InventoryMovement {
+  id            String   @id @default(cuid())
+  inventoryId   String
+  movementType  String   // STOCK_IN, STOCK_OUT, TRANSFER_IN, TRANSFER_OUT, ADJUSTMENT
+  quantity      Int
+  reason        String?
+  notes         String?
+  userId        String
+  timestamp     DateTime @default(now())
+  
+  // Relations
+  inventory     Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id])
+  
+  @@map("inventory_movements")
+}
+
+model Warehouse {
+  id          String   @id @default(cuid())
+  name        String
+  location    String?
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  capacity    Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  inventory   Inventory[]
+  
+  @@map("warehouses")
+}
+
+// ===== SUPPLIER MANAGEMENT =====
+model Supplier {
+  id            String   @id @default(cuid())
+  name          String
+  contactPerson String?
+  email         String?
+  phone         String?
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?
+  taxId         String?
+  paymentTerms  String?  // e.g., "Net 30"
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  purchaseOrders PurchaseOrder[]
+  
+  @@map("suppliers")
+}
+
+// ===== PURCHASE MANAGEMENT =====
+model PurchaseOrder {
+  id              String                @id @default(cuid())
+  poNumber        String                @unique
+  supplierId      String
+  status          PurchaseOrderStatus    @default(DRAFT)
+  orderDate       DateTime              @default(now())
+  expectedDate    DateTime?
+  receivedDate    DateTime?
+  totalAmount     Decimal               @db.Decimal(12, 2) @default(0)
+  notes           String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  
+  // Relations
+  supplier        Supplier              @relation(fields: [supplierId], references: [id])
+  items           PurchaseOrderItem[]
+  
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Int
+  unitPrice       Decimal       @db.Decimal(10, 2)
+  totalPrice      Decimal       @db.Decimal(12, 2)
+  receivedQty     Int           @default(0)
+  
+  // Relations
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id])
+  
+  @@map("purchase_order_items")
+}
+
+// ===== PRODUCTION MANAGEMENT =====
+model Recipe {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  servings      Int      @default(1)
+  prepTime      Int?     // in minutes
+  cookTime      Int?     // in minutes
+  instructions  String?  // JSON or text
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  items         RecipeItem[]
+  productions   Production[]
+  
+  @@map("recipes")
+}
+
+model RecipeItem {
+  id          String   @id @default(cuid())
+  recipeId    String
+  productId   String
+  quantity    Decimal  @db.Decimal(10, 3)
+  unit        String   // e.g., "kg", "ml", "pieces"
+  notes       String?
+  
+  // Relations
+  recipe      Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  @@map("recipe_items")
+}
+
+model Production {
+  id            String            @id @default(cuid())
+  recipeId      String
+  batchNumber   String            @unique
+  plannedQty    Int
+  actualQty     Int?
+  status        ProductionStatus  @default(PLANNED)
+  plannedDate   DateTime
+  startDate     DateTime?
+  endDate       DateTime?
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  
+  // Relations
+  recipe        Recipe            @relation(fields: [recipeId], references: [id])
+  items         ProductionItem[]
+  
+  @@map("productions")
+}
+
+model ProductionItem {
+  id            String   @id @default(cuid())
+  productionId  String
+  productId     String
+  plannedQty    Int
+  actualQty     Int?
+  
+  // Relations
+  production    Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  product       Product    @relation(fields: [productId], references: [id])
+  
+  @@map("production_items")
+}
+
+// ===== ORDER MANAGEMENT =====
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique
+  customerId      String
+  status          OrderStatus   @default(PENDING)
+  paymentStatus   PaymentStatus @default(PENDING)
+  totalAmount     Decimal       @db.Decimal(12, 2)
+  taxAmount       Decimal       @db.Decimal(10, 2) @default(0)
+  discountAmount  Decimal       @db.Decimal(10, 2) @default(0)
+  orderDate       DateTime      @default(now())
+  deliveryDate    DateTime?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  customer        Customer      @relation(fields: [customerId], references: [id])
+  items           OrderItem[]
+  deliveries      Delivery[]
+  
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  totalPrice  Decimal  @db.Decimal(12, 2)
+  notes       String?
+  
+  // Relations
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  @@map("order_items")
+}
+
+// ===== DELIVERY MANAGEMENT =====
+model Delivery {
+  id              String          @id @default(cuid())
+  orderId         String
+  customerId      String
+  deliveryNumber  String          @unique
+  status          DeliveryStatus  @default(SCHEDULED)
+  scheduledDate   DateTime
+  actualDate      DateTime?
+  deliveryAddress String
+  city            String?
+  state           String?
+  zipCode         String?
+  phone           String?
+  notes           String?
+  driverName      String?
+  vehicleNumber   String?
+  trackingNumber  String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relations
+  order           Order           @relation(fields: [orderId], references: [id])
+  customer        Customer        @relation(fields: [customerId], references: [id])
+  
+  @@map("deliveries")
+}
+
+// ===== COMMUNICATION & NOTIFICATIONS =====
+model Notification {
+  id          String   @id @default(cuid())
+  type        String   // SMS, EMAIL, WHATSAPP, PUSH
+  recipient   String   // phone, email, etc.
+  subject     String?
+  message     String
+  status      String   @default("PENDING") // PENDING, SENT, FAILED
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+  
+  @@map("notifications")
+}
+
+// ===== POS SYSTEM ENUMS =====
+enum PaymentMethod {
+  CASH
+  CARD
+  ONLINE
+  UPI
+  WALLET
+  CHEQUE
+}
+
+enum POSOrderStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum ReceiptType {
+  INVOICE
+  RECEIPT
+  REFUND_RECEIPT
+  QUOTE
+}
+
+// ===== POS SYSTEM MODELS =====
+model POSOrder {
+  id              String          @id @default(cuid())
+  orderNumber     String          @unique
+  customerId      String?
+  cashierId       String
+  status          POSOrderStatus  @default(DRAFT)
+  subtotal        Decimal         @default(0)
+  taxAmount       Decimal         @default(0)
+  discountAmount  Decimal         @default(0)
+  totalAmount     Decimal         @default(0)
+  paidAmount      Decimal         @default(0)
+  changeAmount    Decimal         @default(0)
+  notes           String?
+  isOffline       Boolean         @default(false)
+  syncedAt        DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relations
+  customer        Customer?       @relation(fields: [customerId], references: [id])
+  cashier         User            @relation(fields: [cashierId], references: [id])
+  items           POSOrderItem[]
+  payments        POSPayment[]
+  receipts        POSReceipt[]
+  
+  @@map("pos_orders")
+}
+
+model POSOrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String
+  quantity    Int
+  unitPrice   Decimal
+  totalPrice  Decimal
+  discount    Decimal  @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  order       POSOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  @@map("pos_order_items")
+}
+
+model POSPayment {
+  id              String          @id @default(cuid())
+  orderId         String
+  method          PaymentMethod
+  amount          Decimal
+  reference       String?         // Transaction ID, Cheque Number, etc.
+  status          PaymentStatus   @default(PENDING)
+  processedAt     DateTime?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  
+  // Relations
+  order           POSOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  @@map("pos_payments")
+}
+
+model POSReceipt {
+  id              String          @id @default(cuid())
+  orderId         String
+  receiptNumber   String          @unique
+  type            ReceiptType     @default(RECEIPT)
+  content         String          // HTML/PDF content
+  printedAt       DateTime?
+  createdAt       DateTime        @default(now())
+  
+  // Relations
+  order           POSOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  @@map("pos_receipts")
+}
+
+model POSSession {
+  id              String          @id @default(cuid())
+  cashierId       String
+  startTime       DateTime        @default(now())
+  endTime         DateTime?
+  startingCash    Decimal         @default(0)
+  endingCash      Decimal?
+  totalSales      Decimal         @default(0)
+  totalTransactions Int           @default(0)
+  isActive        Boolean         @default(true)
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relations
+  cashier         User            @relation(fields: [cashierId], references: [id])
+  
+  @@map("pos_sessions")
+}
+
+// ===== WEBSITE/PORTAL MODELS =====
+enum CustomerLoginType {
+  EMAIL_PASSWORD
+  MOBILE_OTP
+  SOCIAL_GOOGLE
+  SOCIAL_FACEBOOK
+}
+
+enum OrderSource {
+  WEBSITE
+  POS
+  MOBILE_APP
+  PHONE
+}
+
+enum DeliveryTimeSlot {
+  MORNING_9_12
+  AFTERNOON_12_15
+  EVENING_15_18
+  NIGHT_18_21
+}
+
+model CustomerLogin {
+  id              String            @id @default(cuid())
+  customerId      String
+  loginType       CustomerLoginType
+  identifier      String            // email, mobile, or social ID
+  passwordHash    String?           // for email/password login
+  socialId        String?           // for social login
+  isVerified      Boolean           @default(false)
+  lastLoginAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  customer        Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  @@unique([loginType, identifier])
+  @@map("customer_logins")
+}
+
+model OTPVerification {
+  id              String            @id @default(cuid())
+  mobileNumber    String
+  otpCode         String
+  expiresAt       DateTime
+  isUsed          Boolean           @default(false)
+  attempts        Int               @default(0)
+  createdAt       DateTime          @default(now())
+  
+  @@map("otp_verifications")
+}
+
+model CustomerLocation {
+  id              String            @id @default(cuid())
+  customerId      String
+  address         String
+  city            String
+  state           String
+  zipCode         String
+  coordinates     String?           // lat,lng format
+  isDefault       Boolean           @default(false)
+  deliveryInstructions String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  customer        Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  websiteOrders   WebsiteOrder[]
+  
+  @@map("customer_locations")
+}
+
+model WebsiteOrder {
+  id              String            @id @default(cuid())
+  orderNumber     String            @unique
+  customerId      String
+  customerLocationId String
+  source          OrderSource       @default(WEBSITE)
+  status          OrderStatus       @default(PENDING)
+  paymentStatus   PaymentStatus     @default(PENDING)
+  
+  // Order Details
+  subtotal        Decimal           @default(0)
+  taxAmount       Decimal           @default(0)
+  deliveryFee     Decimal           @default(0)
+  discountAmount  Decimal           @default(0)
+  totalAmount     Decimal           @default(0)
+  
+  // Delivery Details
+  deliveryDate    DateTime
+  deliveryTimeSlot DeliveryTimeSlot
+  deliveryInstructions String?
+  
+  // Special Requirements
+  isBulkOrder     Boolean           @default(false)
+  advanceBookingDays Int?           // for B2B orders
+  specialInstructions String?
+  
+  // Timestamps
+  orderDate       DateTime          @default(now())
+  confirmedAt     DateTime?
+  processedAt     DateTime?
+  deliveredAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  customer        Customer          @relation(fields: [customerId], references: [id])
+  customerLocation CustomerLocation @relation(fields: [customerLocationId], references: [id])
+  items           WebsiteOrderItem[]
+  payments        WebsitePayment[]
+  refunds         WebsiteRefund[]
+  
+  @@map("website_orders")
+}
+
+model WebsiteOrderItem {
+  id              String            @id @default(cuid())
+  orderId         String
+  productId       String
+  quantity        Int
+  unitPrice       Decimal
+  totalPrice      Decimal
+  moq             Int?              // Minimum Order Quantity
+  specialInstructions String?
+  createdAt       DateTime          @default(now())
+  
+  // Relations
+  order           WebsiteOrder      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product           @relation(fields: [productId], references: [id])
+  
+  @@map("website_order_items")
+}
+
+model WebsitePayment {
+  id              String            @id @default(cuid())
+  orderId         String
+  paymentMethod   PaymentMethod
+  amount          Decimal
+  transactionId   String?
+  gatewayResponse String?           // JSON response from payment gateway
+  status          PaymentStatus     @default(PENDING)
+  processedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  
+  // Relations
+  order           WebsiteOrder      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  @@map("website_payments")
+}
+
+model WebsiteRefund {
+  id              String            @id @default(cuid())
+  orderId         String
+  amount          Decimal
+  reason          String
+  status          String            @default("PENDING") // PENDING, APPROVED, PROCESSED, REJECTED
+  processedAt     DateTime?
+  notes           String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  order           WebsiteOrder      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  @@map("website_refunds")
+}
+
+model WebsiteContact {
+  id              String            @id @default(cuid())
+  name            String
+  email           String
+  phone           String?
+  subject         String
+  message         String
+  status          String            @default("NEW") // NEW, READ, REPLIED, CLOSED
+  priority        String            @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  assignedTo      String?           // User ID
+  response        String?
+  respondedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  @@map("website_contacts")
+}
+
+model WebsiteGallery {
+  id              String            @id @default(cuid())
+  title           String
+  description     String?
+  imageUrl        String
+  category        String            // PRODUCTS, FACILITY, TEAM, EVENTS
+  isActive        Boolean           @default(true)
+  sortOrder       Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  @@map("website_gallery")
+}
+
+model WebsiteContent {
+  id              String            @id @default(cuid())
+  page            String            // HOME, ABOUT, CONTACT, etc.
+  section         String            // HERO, FEATURES, TESTIMONIALS, etc.
+  title           String?
+  content         String
+  imageUrl        String?
+  isActive        Boolean           @default(true)
+  sortOrder       Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  @@unique([page, section])
+  @@map("website_content")
+}

@@ -1,0 +1,283 @@
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+async function generateSampleData() {
+  try {
+    console.log('Generating sample data for reports...');
+
+    // Generate sample customers
+    const customers = await Promise.all([
+      prisma.customer.upsert({
+        where: { email: 'john.smith@email.com' },
+        update: {},
+        create: {
+          firstName: 'John',
+          lastName: 'Smith',
+          email: 'john.smith@email.com',
+          phone: '+1234567890',
+          address: '123 Main St',
+          city: 'Downtown',
+          state: 'CA',
+          zipCode: '12345',
+          customerType: 'PREMIUM',
+          isActive: true
+        }
+      }),
+      prisma.customer.upsert({
+        where: { email: 'sarah.johnson@email.com' },
+        update: {},
+        create: {
+          firstName: 'Sarah',
+          lastName: 'Johnson',
+          email: 'sarah.johnson@email.com',
+          phone: '+1234567891',
+          address: '456 Oak Ave',
+          city: 'Suburbs',
+          state: 'CA',
+          zipCode: '12346',
+          customerType: 'REGULAR',
+          isActive: true
+        }
+      }),
+      prisma.customer.upsert({
+        where: { email: 'mike.brown@email.com' },
+        update: {},
+        create: {
+          firstName: 'Mike',
+          lastName: 'Brown',
+          email: 'mike.brown@email.com',
+          phone: '+1234567892',
+          address: '789 Pine St',
+          city: 'Industrial',
+          state: 'CA',
+          zipCode: '12347',
+          customerType: 'REGULAR',
+          isActive: true
+        }
+      })
+    ]);
+
+    // Generate sample products
+    const products = await Promise.all([
+      prisma.product.upsert({
+        where: { sku: 'BREAD-001' },
+        update: {},
+        create: {
+          name: 'Artisan Bread',
+          sku: 'BREAD-001',
+          barcode: '1234567890123',
+          description: 'Fresh artisan bread made daily',
+          category: 'Bread',
+          price: 5.99,
+          cost: 2.50,
+          quantity: 50,
+          minQuantity: 10,
+          maxQuantity: 100,
+          isActive: true
+        }
+      }),
+      prisma.product.upsert({
+        where: { sku: 'PASTRY-001' },
+        update: {},
+        create: {
+          name: 'Chocolate Croissant',
+          sku: 'PASTRY-001',
+          barcode: '1234567890124',
+          description: 'Buttery croissant with chocolate filling',
+          category: 'Pastries',
+          price: 4.99,
+          cost: 2.00,
+          quantity: 30,
+          minQuantity: 5,
+          maxQuantity: 50,
+          isActive: true
+        }
+      }),
+      prisma.product.upsert({
+        where: { sku: 'BREAD-002' },
+        update: {},
+        create: {
+          name: 'Sourdough Loaf',
+          sku: 'BREAD-002',
+          barcode: '1234567890125',
+          description: 'Traditional sourdough bread',
+          category: 'Bread',
+          price: 6.99,
+          cost: 3.00,
+          quantity: 8, // Low stock
+          minQuantity: 10,
+          maxQuantity: 80,
+          isActive: true
+        }
+      })
+    ]);
+
+    // Generate sample suppliers
+    const suppliers = await Promise.all([
+      prisma.supplier.upsert({
+        where: { email: 'flour.supplier@email.com' },
+        update: {},
+        create: {
+          name: 'Premium Flour Co.',
+          email: 'flour.supplier@email.com',
+          phone: '+1987654321',
+          address: '100 Flour St',
+          city: 'Supplier City',
+          state: 'CA',
+          zipCode: '54321',
+          contactPerson: 'Jane Doe',
+          isActive: true
+        }
+      }),
+      prisma.supplier.upsert({
+        where: { email: 'dairy.supplier@email.com' },
+        update: {},
+        create: {
+          name: 'Fresh Dairy Ltd.',
+          email: 'dairy.supplier@email.com',
+          phone: '+1987654322',
+          address: '200 Dairy Ave',
+          city: 'Dairy Town',
+          state: 'CA',
+          zipCode: '54322',
+          contactPerson: 'Bob Smith',
+          isActive: true
+        }
+      })
+    ]);
+
+    // Generate sample orders with different dates
+    const orders = [];
+    const orderStatuses = ['PENDING', 'CONFIRMED', 'IN_PRODUCTION', 'READY_FOR_DELIVERY', 'OUT_FOR_DELIVERY', 'DELIVERED'];
+    
+    for (let i = 0; i < 20; i++) {
+      const orderDate = new Date();
+      orderDate.setDate(orderDate.getDate() - Math.floor(Math.random() * 30)); // Random date within last 30 days
+      
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: `ORD-${String(i + 1).padStart(4, '0')}`,
+          customerId: customers[Math.floor(Math.random() * customers.length)].id,
+          status: orderStatuses[Math.floor(Math.random() * orderStatuses.length)],
+          paymentStatus: 'COMPLETED',
+          totalAmount: 15.99 + Math.random() * 50,
+          taxAmount: 2.00,
+          discountAmount: 0,
+          orderDate,
+          deliveryDate: new Date(orderDate.getTime() + 24 * 60 * 60 * 1000), // Next day delivery
+          notes: `Sample order ${i + 1}`
+        }
+      });
+      orders.push(order);
+    }
+
+    // Generate sample deliveries
+    for (let i = 0; i < 15; i++) {
+      const deliveryDate = new Date();
+      deliveryDate.setDate(deliveryDate.getDate() - Math.floor(Math.random() * 20));
+      
+      await prisma.delivery.create({
+        data: {
+          orderId: orders[i].id,
+          customerId: orders[i].customerId,
+          deliveryNumber: `DEL-${String(i + 1).padStart(4, '0')}`,
+          status: Math.random() > 0.2 ? 'DELIVERED' : 'IN_TRANSIT',
+          scheduledDate: deliveryDate,
+          actualDate: Math.random() > 0.2 ? deliveryDate : null,
+          deliveryAddress: customers[Math.floor(Math.random() * customers.length)].address || '123 Sample St',
+          city: 'Sample City',
+          state: 'CA',
+          zipCode: '12345',
+          phone: '+1234567890',
+          driverName: `Driver ${i + 1}`,
+          vehicleNumber: `VH-${String(i + 1).padStart(3, '0')}`
+        }
+      });
+    }
+
+    // Generate sample inventory items
+    for (const product of products) {
+      await prisma.inventory.upsert({
+        where: { productId: product.id },
+        update: {},
+        create: {
+          productId: product.id,
+          warehouseId: 'default-warehouse', // You might need to create a default warehouse first
+          quantity: product.quantity,
+          minQuantity: product.minQuantity,
+          maxQuantity: product.maxQuantity,
+          location: 'A-1-1',
+          lastRestocked: new Date(),
+          expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+        }
+      });
+    }
+
+    // Generate sample production batches
+    const recipes = await Promise.all([
+      prisma.recipe.upsert({
+        where: { name: 'Artisan Bread Recipe' },
+        update: {},
+        create: {
+          name: 'Artisan Bread Recipe',
+          description: 'Traditional artisan bread recipe',
+          servings: 1,
+          prepTime: 30,
+          cookTime: 45,
+          instructions: 'Mix ingredients, knead, proof, bake'
+        }
+      }),
+      prisma.recipe.upsert({
+        where: { name: 'Sourdough Recipe' },
+        update: {},
+        create: {
+          name: 'Sourdough Recipe',
+          description: 'Traditional sourdough bread recipe',
+          servings: 1,
+          prepTime: 45,
+          cookTime: 60,
+          instructions: 'Mix sourdough starter, knead, long proof, bake'
+        }
+      })
+    ]);
+
+    for (let i = 0; i < 10; i++) {
+      const productionDate = new Date();
+      productionDate.setDate(productionDate.getDate() - Math.floor(Math.random() * 15));
+      
+      await prisma.production.create({
+        data: {
+          recipeId: recipes[Math.floor(Math.random() * recipes.length)].id,
+          batchNumber: `BATCH-${String(i + 1).padStart(4, '0')}`,
+          plannedQty: 20 + Math.floor(Math.random() * 30),
+          actualQty: Math.random() > 0.1 ? 20 + Math.floor(Math.random() * 30) : null,
+          status: Math.random() > 0.2 ? 'COMPLETED' : 'IN_PROGRESS',
+          plannedDate: productionDate,
+          startDate: Math.random() > 0.3 ? productionDate : null,
+          endDate: Math.random() > 0.2 ? new Date(productionDate.getTime() + 2 * 60 * 60 * 1000) : null,
+          notes: `Sample production batch ${i + 1}`
+        }
+      });
+    }
+
+    console.log('Sample data generated successfully!');
+    console.log(`Created ${customers.length} customers`);
+    console.log(`Created ${products.length} products`);
+    console.log(`Created ${suppliers.length} suppliers`);
+    console.log(`Created ${orders.length} orders`);
+    console.log(`Created ${recipes.length} recipes`);
+
+  } catch (error) {
+    console.error('Error generating sample data:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// Run the sample data generation
+if (require.main === module) {
+  generateSampleData();
+}
+
+export { generateSampleData };
