@@ -96,7 +96,7 @@ export default function RegisterPage() {
     }
   };
 
-  const updateFormData = (field: keyof RegistrationData, value: any) => {
+  const updateFormData = (field: keyof RegistrationData, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 

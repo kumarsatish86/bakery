@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/database';
+import { CustomerType } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
       lastName,
       email: email.toLowerCase(),
       phone,
-      customerType: customerType === 'B2C' ? 'INDIVIDUAL' : customerType as 'B2B' | 'COMMUNITY',
+      customerType: customerType === 'B2C' ? 'INDIVIDUAL' : customerType as CustomerType,
       address,
       city,
       zipCode: pincode,

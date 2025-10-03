@@ -20,8 +20,8 @@ async function generateSampleData() {
           city: 'Downtown',
           state: 'CA',
           zipCode: '12345',
-          customerType: 'PREMIUM',
-          isActive: true
+          customerType: 'INDIVIDUAL',
+
         }
       }),
       prisma.customer.upsert({
@@ -36,8 +36,8 @@ async function generateSampleData() {
           city: 'Suburbs',
           state: 'CA',
           zipCode: '12346',
-          customerType: 'REGULAR',
-          isActive: true
+          customerType: 'INDIVIDUAL',
+
         }
       }),
       prisma.customer.upsert({
@@ -52,8 +52,8 @@ async function generateSampleData() {
           city: 'Industrial',
           state: 'CA',
           zipCode: '12347',
-          customerType: 'REGULAR',
-          isActive: true
+          customerType: 'INDIVIDUAL',
+
         }
       })
     ]);
@@ -68,13 +68,14 @@ async function generateSampleData() {
           sku: 'BREAD-001',
           barcode: '1234567890123',
           description: 'Fresh artisan bread made daily',
-          category: 'Bread',
-          price: 5.99,
-          cost: 2.50,
-          quantity: 50,
-          minQuantity: 10,
-          maxQuantity: 100,
-          isActive: true
+          category: 'BREAD',
+          basePrice: 5.99,
+          sellingPrice: 5.99,
+          costPrice: 2.50,
+          minStockLevel: 50,
+
+          maxStockLevel: 100,
+
         }
       }),
       prisma.product.upsert({
@@ -85,13 +86,14 @@ async function generateSampleData() {
           sku: 'PASTRY-001',
           barcode: '1234567890124',
           description: 'Buttery croissant with chocolate filling',
-          category: 'Pastries',
-          price: 4.99,
-          cost: 2.00,
-          quantity: 30,
-          minQuantity: 5,
-          maxQuantity: 50,
-          isActive: true
+          category: 'PASTRY',
+          basePrice: 4.99,
+          sellingPrice: 4.99,
+          costPrice: 2.00,
+          minStockLevel: 30,
+          maxStockLevel: 5,
+          maxStockLevel: 50,
+
         }
       }),
       prisma.product.upsert({
@@ -102,13 +104,13 @@ async function generateSampleData() {
           sku: 'BREAD-002',
           barcode: '1234567890125',
           description: 'Traditional sourdough bread',
-          category: 'Bread',
-          price: 6.99,
-          cost: 3.00,
-          quantity: 8, // Low stock
-          minQuantity: 10,
-          maxQuantity: 80,
-          isActive: true
+          category: 'BREAD',
+          basePrice: 6.99,
+          costPrice: 3.00,
+          minStockLevel: 8, // Low stock
+
+          maxStockLevel: 80,
+
         }
       })
     ]);
@@ -127,7 +129,7 @@ async function generateSampleData() {
           state: 'CA',
           zipCode: '54321',
           contactPerson: 'Jane Doe',
-          isActive: true
+
         }
       }),
       prisma.supplier.upsert({
@@ -142,7 +144,7 @@ async function generateSampleData() {
           state: 'CA',
           zipCode: '54322',
           contactPerson: 'Bob Smith',
-          isActive: true
+
         }
       })
     ]);
@@ -159,8 +161,8 @@ async function generateSampleData() {
         data: {
           orderNumber: `ORD-${String(i + 1).padStart(4, '0')}`,
           customerId: customers[Math.floor(Math.random() * customers.length)].id,
-          status: orderStatuses[Math.floor(Math.random() * orderStatuses.length)],
-          paymentStatus: 'COMPLETED',
+          isActive: orderStatuses[Math.floor(Math.random() * orderStatuses.length)],
+          paymentisActive: 'COMPLETED',
           totalAmount: 15.99 + Math.random() * 50,
           taxAmount: 2.00,
           discountAmount: 0,
@@ -182,7 +184,7 @@ async function generateSampleData() {
           orderId: orders[i].id,
           customerId: orders[i].customerId,
           deliveryNumber: `DEL-${String(i + 1).padStart(4, '0')}`,
-          status: Math.random() > 0.2 ? 'DELIVERED' : 'IN_TRANSIT',
+          isActive: Math.random() > 0.2 ? 'DELIVERED' : 'IN_TRANSIT',
           scheduledDate: deliveryDate,
           actualDate: Math.random() > 0.2 ? deliveryDate : null,
           deliveryAddress: customers[Math.floor(Math.random() * customers.length)].address || '123 Sample St',
@@ -204,9 +206,9 @@ async function generateSampleData() {
         create: {
           productId: product.id,
           warehouseId: 'default-warehouse', // You might need to create a default warehouse first
-          quantity: product.quantity,
-          minQuantity: product.minQuantity,
-          maxQuantity: product.maxQuantity,
+          minStockLevel: product.quantity,
+          maxStockLevel: product.minQuantity,
+          maxStockLevel: product.maxQuantity,
           location: 'A-1-1',
           lastRestocked: new Date(),
           expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
@@ -252,7 +254,7 @@ async function generateSampleData() {
           batchNumber: `BATCH-${String(i + 1).padStart(4, '0')}`,
           plannedQty: 20 + Math.floor(Math.random() * 30),
           actualQty: Math.random() > 0.1 ? 20 + Math.floor(Math.random() * 30) : null,
-          status: Math.random() > 0.2 ? 'COMPLETED' : 'IN_PROGRESS',
+          isActive: Math.random() > 0.2 ? 'COMPLETED' : 'IN_PROGRESS',
           plannedDate: productionDate,
           startDate: Math.random() > 0.3 ? productionDate : null,
           endDate: Math.random() > 0.2 ? new Date(productionDate.getTime() + 2 * 60 * 60 * 1000) : null,
