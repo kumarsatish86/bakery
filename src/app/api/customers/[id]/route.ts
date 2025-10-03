@@ -71,7 +71,29 @@ export async function PUT(
       }, { status: 403 });
     }
 
-    const { firstName, lastName, email, phone, address, city, state, zipCode, customerType, isActive } = await request.json();
+    const { 
+      firstName, 
+      lastName, 
+      email, 
+      phone, 
+      address, 
+      city, 
+      state, 
+      zipCode, 
+      customerType, 
+      isActive,
+      // Company Information
+      companyName,
+      companyRegistration,
+      companyAddress,
+      companyCity,
+      companyState,
+      companyZipCode,
+      // Tax Information
+      taxId,
+      taxType,
+      taxExempt
+    } = await request.json();
 
     if (!firstName || !lastName || !email) {
       return NextResponse.json(
@@ -90,7 +112,18 @@ export async function PUT(
       state, 
       zipCode, 
       customerType, 
-      isActive 
+      isActive,
+      // Company Information
+      companyName,
+      companyRegistration,
+      companyAddress,
+      companyCity,
+      companyState,
+      companyZipCode,
+      // Tax Information
+      taxId,
+      taxType,
+      taxExempt
     });
 
     if (!updatedCustomer) {

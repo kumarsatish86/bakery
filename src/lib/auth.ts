@@ -24,6 +24,19 @@ export interface Customer {
   zipCode: string | null;
   customerType: 'INDIVIDUAL' | 'B2B' | 'COMMUNITY';
   isActive: boolean;
+  
+  // Company Information (for B2B and COMMUNITY customers)
+  companyName?: string | null;
+  companyRegistration?: string | null;
+  companyAddress?: string | null;
+  companyCity?: string | null;
+  companyState?: string | null;
+  companyZipCode?: string | null;
+  
+  // Tax Information (for B2B and COMMUNITY customers)
+  taxId?: string | null;
+  taxType?: 'GST' | 'VAT' | 'NONE';
+  taxExempt?: boolean;
 }
 
 export interface LoginCredentials {
@@ -72,6 +85,17 @@ export const CUSTOMER_TYPES = {
   INDIVIDUAL: 'INDIVIDUAL',
   B2B: 'B2B',
   COMMUNITY: 'COMMUNITY'
+} as const;
+
+export const TAX_TYPES = {
+  GST: 'GST',
+  VAT: 'VAT',
+  NONE: 'NONE'
+} as const;
+
+export const ADDRESS_TYPES = {
+  SHIPPING: 'SHIPPING',
+  BILLING: 'BILLING'
 } as const;
 
 export type UserRole = keyof typeof USER_ROLES;

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
-import { CUSTOMER_TYPES } from '@/lib/auth';
+import { CUSTOMER_TYPES, TAX_TYPES } from '@/lib/auth';
 
 export default function AddCustomer() {
   const router = useRouter();
@@ -18,14 +18,25 @@ export default function AddCustomer() {
     city: '',
     state: '',
     zipCode: '',
-    customerType: 'INDIVIDUAL'
+    customerType: 'INDIVIDUAL',
+    // Company Information
+    companyName: '',
+    companyRegistration: '',
+    companyAddress: '',
+    companyCity: '',
+    companyState: '',
+    companyZipCode: '',
+    // Tax Information
+    taxId: '',
+    taxType: 'GST',
+    taxExempt: false
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }));
   };
 
@@ -241,6 +252,163 @@ export default function AddCustomer() {
                 </div>
               </div>
             </div>
+
+            {/* Company Information - Show only for B2B and COMMUNITY customers */}
+            {(formData.customerType === 'B2B' || formData.customerType === 'COMMUNITY') && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Company Information</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div>
+                    <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
+                      Company Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="companyName"
+                      name="companyName"
+                      value={formData.companyName}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Enter company name"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="companyRegistration" className="block text-sm font-medium text-gray-700 mb-2">
+                      Registration Number
+                    </label>
+                    <input
+                      type="text"
+                      id="companyRegistration"
+                      name="companyRegistration"
+                      value={formData.companyRegistration}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Enter registration number"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="companyAddress" className="block text-sm font-medium text-gray-700 mb-2">
+                      Company Address
+                    </label>
+                    <input
+                      type="text"
+                      id="companyAddress"
+                      name="companyAddress"
+                      value={formData.companyAddress}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Enter company address"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="companyCity" className="block text-sm font-medium text-gray-700 mb-2">
+                      Company City
+                    </label>
+                    <input
+                      type="text"
+                      id="companyCity"
+                      name="companyCity"
+                      value={formData.companyCity}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Enter company city"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="companyState" className="block text-sm font-medium text-gray-700 mb-2">
+                      Company State
+                    </label>
+                    <input
+                      type="text"
+                      id="companyState"
+                      name="companyState"
+                      value={formData.companyState}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Enter company state"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="companyZipCode" className="block text-sm font-medium text-gray-700 mb-2">
+                      Company Zip Code
+                    </label>
+                    <input
+                      type="text"
+                      id="companyZipCode"
+                      name="companyZipCode"
+                      value={formData.companyZipCode}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Enter company zip code"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tax Information - Show only for B2B and COMMUNITY customers */}
+            {(formData.customerType === 'B2B' || formData.customerType === 'COMMUNITY') && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Tax Information</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div>
+                    <label htmlFor="taxId" className="block text-sm font-medium text-gray-700 mb-2">
+                      Tax ID (GST/VAT Number)
+                    </label>
+                    <input
+                      type="text"
+                      id="taxId"
+                      name="taxId"
+                      value={formData.taxId}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Enter tax ID"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="taxType" className="block text-sm font-medium text-gray-700 mb-2">
+                      Tax Type
+                    </label>
+                    <select
+                      id="taxType"
+                      name="taxType"
+                      value={formData.taxType}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      {Object.values(TAX_TYPES).map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="taxExempt"
+                      name="taxExempt"
+                      checked={formData.taxExempt}
+                      onChange={handleInputChange}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="taxExempt" className="ml-2 block text-sm text-gray-900">
+                      Tax Exempt
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">

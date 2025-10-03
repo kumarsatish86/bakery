@@ -48,6 +48,11 @@ enum TaxType {
   NONE
 }
 
+enum AddressType {
+  SHIPPING
+  BILLING
+}
+
 enum UnitType {
   PIECE
   KG
@@ -131,6 +136,20 @@ model Customer {
   zipCode     String?
   customerType CustomerType @default(INDIVIDUAL)
   isActive    Boolean      @default(true)
+  
+  // Company Information (for B2B and COMMUNITY customers)
+  companyName String?
+  companyRegistration String? // Company registration number
+  companyAddress String?
+  companyCity String?
+  companyState String?
+  companyZipCode String?
+  
+  // Tax Information (for B2B and COMMUNITY customers)
+  taxId String? // GST number, VAT number, etc.
+  taxType TaxType @default(GST)
+  taxExempt Boolean @default(false)
+  
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -141,6 +160,7 @@ model Customer {
   logins      CustomerLogin[]
   locations   CustomerLocation[]
   websiteOrders WebsiteOrder[]
+  addresses   CustomerAddress[]
 
   @@map("customers")
 }
@@ -673,6 +693,29 @@ model CustomerLocation {
   websiteOrders   WebsiteOrder[]
   
   @@map("customer_locations")
+}
+
+model CustomerAddress {
+  id              String            @id @default(cuid())
+  customerId      String
+  addressType     AddressType       @default(SHIPPING)
+  address         String
+  city            String
+  state           String
+  zipCode         String
+  country         String?           @default("India")
+  coordinates     String?           // lat,lng format
+  isDefault       Boolean           @default(false)
+  deliveryInstructions String?
+  contactName     String?           // Contact person at this address
+  contactPhone    String?           // Contact phone for this address
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  customer        Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  @@map("customer_addresses")
 }
 
 model WebsiteOrder {
