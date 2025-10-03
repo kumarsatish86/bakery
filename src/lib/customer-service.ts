@@ -1,4 +1,3 @@
-import { Customer } from './auth';
 import { prisma } from './database';
 
 export async function createCustomer(customerData: {

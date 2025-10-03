@@ -479,7 +479,7 @@ export async function processPendingNotifications() {
   return results;
 }
 
-async function simulateNotificationSending(notification: { id: string; type: string; recipient: string; message: string }) {
+async function simulateNotificationSending(_notification: { id: string; type: string; recipient: string; message: string }) {
   // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 1000));
   

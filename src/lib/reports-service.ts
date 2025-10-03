@@ -177,7 +177,7 @@ export async function getReportData(period: string): Promise<ReportData> {
 // Sales trend data for charts
 export async function getSalesTrendData(period: string): Promise<Array<{ date: string; revenue: number; orders: number }>> {
   try {
-    const { startDate, endDate } = getDateRange(period);
+    getDateRange(period); // Get date range for future use
     
     // Generate sample trend data for demonstration
     const trendData = [];
@@ -206,7 +206,7 @@ export async function getSalesTrendData(period: string): Promise<Array<{ date: s
 }
 
 // Top products data for charts
-export async function getTopProductsData(period: string): Promise<Array<{ name: string; sales: number; revenue: number }>> {
+export async function getTopProductsData(_period: string): Promise<Array<{ name: string; sales: number; revenue: number }>> {
   try {
     // Generate sample top products data
     const sampleProducts = [
@@ -258,9 +258,9 @@ export async function generateSalesReport(period: string): Promise<SalesReportDa
 }
 
 // Inventory report
-export async function generateInventoryReport(period: string): Promise<InventoryReportData> {
+export async function generateInventoryReport(_period: string): Promise<InventoryReportData> {
   try {
-    const { startDate, endDate } = getDateRange(period);
+    getDateRange(_period); // Get date range for future use
     
     // Get inventory data
     const [totalItems, lowStockItems, outOfStockItems] = await Promise.all([

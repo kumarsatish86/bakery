@@ -37,7 +37,7 @@ export default function UserManagement() {
       } else {
         setError('Failed to fetch users');
       }
-    } catch (error) {
+    } catch {
       setError('An error occurred while fetching users');
     } finally {
       setIsLoading(false);
@@ -63,7 +63,7 @@ export default function UserManagement() {
       } else {
         setError('Failed to update user role');
       }
-    } catch (error) {
+    } catch {
       setError('An error occurred while updating user role');
     }
   };
@@ -85,7 +85,7 @@ export default function UserManagement() {
       } else {
         setError('Failed to toggle user status');
       }
-    } catch (error) {
+    } catch {
       setError('An error occurred while toggling user status');
     }
   };

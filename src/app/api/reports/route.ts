@@ -101,15 +101,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Add metadata
-    reportData.metadata = {
-      generatedAt: new Date().toISOString(),
-      generatedBy: user.id,
-      period,
-      reportType,
-      format
+    const responseData = {
+      ...reportData,
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        generatedBy: user.id,
+        period,
+        reportType,
+        format
+      }
     };
 
-    return NextResponse.json(reportData);
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error generating report:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
